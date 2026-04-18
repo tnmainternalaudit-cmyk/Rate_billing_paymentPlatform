@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  REVENUE_OFFICER
+  VIEWER
+}
+
+enum RatepayerType {
+  PROPERTY
+  BUSINESS
+  MARKET_STORE
+}
+
+enum BillStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MTN_MOMO
+  TELECEL_CASH
+  AIRTELTIGO_MONEY
+  CASH
+  BANK
+  POS
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum SyncStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         UserRole @default(REVENUE_OFFICER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  payments     Payment[]
+  auditLogs    AuditLog[]
+}
+
+model Zone {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  wards       Ward[]
+  ratepayers  Ratepayer[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  createdBy   String?
+  updatedBy   String?
+}
+
+model Ward {
+  id            String          @id @default(cuid())
+  name          String
+  zoneId        String
+  zone          Zone            @relation(fields: [zoneId], references: [id])
+  electoralAreas ElectoralArea[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  @@unique([zoneId, name])
+}
+
+model ElectoralArea {
+  id         String   @id @default(cuid())
+  name       String
+  wardId     String
+  ward       Ward     @relation(fields: [wardId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  @@unique([wardId, name])
+}
+
+model Ratepayer {
+  id         String        @id @default(cuid())
+  uniqueRef  String        @unique
+  type       RatepayerType
+  fullName   String
+  phone      String?
+  email      String?
+  address    String?
+  zoneId     String?
+  zone       Zone?         @relation(fields: [zoneId], references: [id])
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  property    Property?
+  business    Business?
+  marketStore MarketStore?
+  bills       Bill[]
+  payments    Payment[]
+
+  @@index([type])
+  @@index([zoneId])
+  @@index([fullName])
+}
+
+model Property {
+  id           String   @id @default(cuid())
+  ratepayerId  String   @unique
+  ratepayer    Ratepayer @relation(fields: [ratepayerId], references: [id])
+  propertyNo   String
+  location     String
+  useType      String
+  ratableValue Decimal  @db.Decimal(12, 2)
+  rateImpost   Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+}
+
+model Business {
+  id           String   @id @default(cuid())
+  ratepayerId  String   @unique
+  ratepayer    Ratepayer @relation(fields: [ratepayerId], references: [id])
+  businessName String
+  businessType String
+  category     String
+  annualFee    Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+}
+
+model MarketStore {
+  id          String   @id @default(cuid())
+  ratepayerId String   @unique
+  ratepayer   Ratepayer @relation(fields: [ratepayerId], references: [id])
+  marketName  String
+  storeNo     String
+  monthlyRent Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+}
+
+model BillingPeriod {
+  id         String   @id @default(cuid())
+  year       Int
+  startDate  DateTime
+  endDate    DateTime
+  status     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  bills      Bill[]
+
+  @@unique([year])
+}
+
+model Bill {
+  id               String     @id @default(cuid())
+  billNo           String     @unique
+  ratepayerId      String
+  ratepayer        Ratepayer  @relation(fields: [ratepayerId], references: [id])
+  billingPeriodId  String
+  billingPeriod    BillingPeriod @relation(fields: [billingPeriodId], references: [id])
+  principal        Decimal    @db.Decimal(12, 2)
+  arrears          Decimal    @db.Decimal(12, 2)
+  totalDue         Decimal    @db.Decimal(12, 2)
+  status           BillStatus @default(UNPAID)
+  issuedAt         DateTime
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  createdBy        String?
+  updatedBy        String?
+
+  payments         Payment[]
+
+  @@index([ratepayerId])
+  @@index([billingPeriodId])
+  @@index([status])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  receiptNo    String        @unique
+  billId       String
+  bill         Bill          @relation(fields: [billId], references: [id])
+  ratepayerId  String
+  ratepayer    Ratepayer     @relation(fields: [ratepayerId], references: [id])
+  amount       Decimal       @db.Decimal(12, 2)
+  method       PaymentMethod
+  providerRef  String?
+  officerId    String
+  officer      User          @relation(fields: [officerId], references: [id])
+  paidAt       DateTime
+  isReversed   Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  receipt      Receipt?
+
+  @@index([billId])
+  @@index([ratepayerId])
+  @@index([officerId])
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  paymentId    String   @unique
+  payment      Payment  @relation(fields: [paymentId], references: [id])
+  pdfPath      String?
+  smsStatus    NotificationStatus @default(PENDING)
+  emailStatus  NotificationStatus @default(PENDING)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+  updatedBy    String?
+}
+
+model NotificationLog {
+  id               String             @id @default(cuid())
+  channel          NotificationChannel
+  recipient        String
+  payload          String
+  status           NotificationStatus
+  providerResponse String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  createdBy        String?
+  updatedBy        String?
+
+  @@index([channel, status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+  ip        String?
+  userAgent String?
+  at        DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+model SyncBatch {
+  id          String     @id @default(cuid())
+  deviceId    String
+  officerId   String
+  pushedAt    DateTime
+  recordCount Int
+  status      SyncStatus
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  @@index([deviceId, pushedAt])
+}

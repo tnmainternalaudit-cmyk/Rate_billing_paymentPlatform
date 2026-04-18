@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.local
+coverage
+dist
+build
+release
+*.log
+backend/prisma/dev.db
+mobile/android/.gradle
+mobile/android/build
+mobile/android/app/build

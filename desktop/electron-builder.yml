@@ -1,0 +1,14 @@
+appId: gh.tnma.revenue
+productName: TNMA-Revenue
+files:
+  - dist/**
+  - dist-electron/**
+win:
+  target:
+    - nsis
+  artifactName: TNMA-Revenue-Setup-${version}.exe
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+directories:
+  output: release
