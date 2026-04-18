@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
@@ -15,6 +16,16 @@ export class AuditService {
     ip?: string;
     userAgent?: string;
   }) {
-    return this.prisma.auditLog.create({ data: { ...input } });
+    const data: Prisma.AuditLogUncheckedCreateInput = {
+      userId: input.userId,
+      action: input.action,
+      entity: input.entity,
+      entityId: input.entityId,
+      before: (input.before as Prisma.InputJsonValue) ?? undefined,
+      after: (input.after as Prisma.InputJsonValue) ?? undefined,
+      ip: input.ip,
+      userAgent: input.userAgent,
+    };
+    return this.prisma.auditLog.create({ data });
   }
 }

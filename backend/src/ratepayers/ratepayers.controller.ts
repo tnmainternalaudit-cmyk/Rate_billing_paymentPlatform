@@ -36,7 +36,7 @@ export class RatepayersController {
 
   @Post('import')
   @UseInterceptors(FileInterceptor('file'))
-  async importCsv(@UploadedFile() file: Express.Multer.File, @Req() req: { user?: { userId?: string } }) {
+  async importCsv(@UploadedFile() file: { buffer: Buffer }, @Req() req: { user?: { userId?: string } }) {
     const rows = parse(file.buffer.toString('utf8'), { columns: true, skip_empty_lines: true }) as Array<Record<string, string>>;
     return this.service.importRows(
       rows.map((r) => ({
