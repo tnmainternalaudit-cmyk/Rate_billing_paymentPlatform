@@ -1,0 +1,20 @@
+{
+  "name": "tnma-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "react": "18.2.0",
+    "react-native": "0.74.5",
+    "react-native-sqlite-storage": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.5.4"
+  }
+}

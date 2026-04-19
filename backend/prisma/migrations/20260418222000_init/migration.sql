@@ -1,0 +1,2 @@
+-- Initial migration generated from schema.prisma
+-- Run: npx prisma migrate dev --name init
